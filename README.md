@@ -48,17 +48,12 @@ map.txt的格式定义如下：
 
 ### 信息交换格式：
 
-client -> aws:{map id,source node,file size}
-
-aws -> client:[[destination,min length,transmission delay,propagation delay,end to end delay]]
-
-aws -> serverA:{map id,source node}
-
-serverA -> aws:{propagation speed,transmission speed,[[destination,min length]]}
-
-aws -> serverB:{propagation speed,transmission speed,file size,[[destination,min length]]}
-
-serverB -> aws:[[destination,transmission delay,propagation delay,end to end delay]]
+- client -> aws:{map id,source node,file size}
+- aws -> client:[[destination,min length,transmission delay,propagation delay,end to end delay]]
+- aws -> serverA:{map id,source node}
+- serverA -> aws:{propagation speed,transmission speed,[[destination,min length]]}
+- aws -> serverB:{propagation speed,transmission speed,file size,[[destination,min length]]}
+- serverB -> aws:[[destination,transmission delay,propagation delay,end to end delay]]
 
 ### 编译运行：
 
@@ -67,5 +62,5 @@ serverB -> aws:[[destination,transmission delay,propagation delay,end to end del
 | 编译源文件  | make all                                            |
 | 运行ServerA | make serverA                                        |
 | 运行ServerB | make serverB                                        |
-| 客户端查询  | ./client <Map ID> <Source Vertex Index> <File Size> |
+| 客户端查询  | ./client \<Map ID\> \<Source Vertex Index\> \<File Size\> |
 
