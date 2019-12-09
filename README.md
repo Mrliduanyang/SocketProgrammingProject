@@ -1,43 +1,52 @@
-a. Name:Guozhen Gao
+## 计算机网络第二次作业程序文档
 
-b. Student ID:6069332657
+### 问题描述：
 
-c.What I have done in this assignment?
-     In this assignment, I have successfully implemented the TCP and UDP Socket simulation among a client, an AWS server and two backend servers.
+许多与网络相关的应用程序需要快速识别一对节点之间的最短路径，以优化路由性能。给定一个由一组顶点𝑉和一组边组成的加权图𝐺（𝑉，𝐸），我们的目的是在𝐺中找到连接源顶点𝑣1和目标顶点𝑣𝑛的路径，使得总的边缘权重沿着路径被最小化。
+在此项目中，将实现一个分布式系统，以根据客户的查询来计算最短路径。假设系统存储了一个城市的地图，并且客户希望获得最短路径和城市中两点之间的相应传输延迟。下图总结了系统架构。分布式系统由三个计算节点组成：主服务器（AWS），连接到两个后端服务器（服务器A和服务器B）。在后端服务器A上，有一个名为map.txt的文件，用于存储城市的地图信息。 AWS服务器与客户端连接以接收其查询并返回计算出的答案。后端服务器A和B根据AWS服务器转发的消息执行实际的最短路径和传输延迟计算。
 
-d. File Description
+### 系统流程：
 
-1.client.cpp：
-The program first obtains the map id, source node, and file size entered by the user from the command line.
-Then create a TCP connection with aws. After the connection is established, the program encapsulates the three input data
-and sends it to aws, and then waits for aws to return the minimum delay data from the source node to other nodes in the map.
+1. [通信]Client-> AWS：客户端通过TCP将地图ID，地图中的源节点和传输文件大小（单位：位）发送到AWS；
+2. [通信] AWS-> ServerA：AWS通过UDP将地图ID和源节点转发到ServerA；
+3. [计算] ServerA从map.txt中读取地图信息，使用Dijkstra查找从输入源到所有其他节点的最短路径，并以预定义的格式打印出来；
+4. [通信] ServerA-> AWS：ServerA将Dijkstra的输出发送到AWS；
+5. [通信] AWS-> ServerB：AWS将文件大小以及ServerA的输出发送到ServerB；
+6. [计算] ServerB计算每条路径的传输延迟，传播延迟和端到端延迟；
+7. [通信] ServerB-> AWS：ServerB将计算出的延迟值发送到AWS；
+8. [通信] AWS->客户端：AWS向客户端发送最短路径和延迟结果，然后客户端打印最终结果；
 
+### 城市地图数据格式：
 
-2.aws.cpp：
-The program first establishes a TCP socket and listens on port 24657 in order to receive query requests sent by the client.
-aws receives the client's query request, establishes a UDP connection with backend server A, sends the map id and source
-node data in the query request to serverA, and then waits to receive the shortest path data from source node to other
-nodes returned by serverA . After receiving the shortest path data, aws establishes a UDP connection with serverB,
-sends the file size data and shortest path data in the client query request to serverB, and then waits to receive
-the minimum delay data from source node to other nodes returned by serverB. After receiving the delayed result returned
-by serverB, return the result to the client.
+该城市的地图信息存储在ServerA中名为map.txt的文件中。map.txt文件包含多张地图的信息，其中每张地图都可以视为城市的社区。 在每个映射中，进一步指定边缘和顶点信息，其中边缘代表通信链接。假设属于同一地图的边缘具有相同的传播速度和传输速度。
+map.txt的格式定义如下：
 
+```
+<Map ID 1>
+<Propagation speed>
+<Transmission speed>
+<Vertex index for one end of the edge> <Vertex index for the other end> <Distance between the two vertices>
+… (Specification for other edges)
+<Map ID 2>
+```
 
-3.serverA.cpp：
-The program first establishes a UDP socket and listens on port 21657 in order to receive data sent by aws.
-After that, extract the property speed and transmission speed according to the map.txt file, and start building the
-undirected graph. After receiving the map id and source node data sent by aws, serverA uses the Dijkstra algorithm to
-find the shortest path from the source node to other nodes in the map corresponding to the map id.
-After the calculation is completed, return the property speed, transmission speed, and shortest path results to aws.
+### 端口号分配：
 
+| 进程    | 动态端口 | 静态端口                              |
+| ------- | -------- | ------------------------------------- |
+| ServerA | -        | 1 UDP，21223                          |
+| ServerB | -        | 1 UDP，22223                          |
+| AWS     | -        | 1 UDP，23223；1 TCP with Client 24223 |
+| Client  | 1 TCP    | -                                     |
 
-4.serverB.cpp：The program first establishes a UDP socket and listens to port 22657 in order to receive data sent by aws.
- ServerB receives the property transmission speed, transmission speed, and shortest path data sent from aws,
- and calculates the transmission delay, property delay, and end to end delay corresponding to each path.
- After the calculation is complete, return transmission delay, property delay and end to end delay to aws.
+### 文件描述：
 
+1. client.cpp：Client代码。该程序首先从命令行中获取用户输入的map id，source node，file size。然后创建和aws之间的TCP连接，连接建立完成后，程序将三个输入数据封装后发送给AWS，之后等待AWS返回该map中从source node到其他各节点的最小延迟数据。
+2. aws.cpp：AWS代码。该程序首先建立TCP socket，侦听24233端口，以接收Client发送过来的查询请求。AWS接收到Client的查询请求后，建立和ServerA的UDP连接，将查询请求中的map id和source node数据发送给ServerA，之后等待接收ServerA返回的从source node到其他各节点的最短路径数据。接收到最短路径数据后，AWS建立和ServerB的UDP连接，将Client查询请求中的file size数据和最短路径数据发送给ServerB，之后等待接收ServerB返回的从source node到其他各节点的最小延迟数据。接收到ServerB返回的延迟结果后，将该结果返回给Client。
+3. serverA.cpp：ServerA代码。该程序首先建立UDP socket，侦听21233端口，以便接收AWS发送过来的数据。之后，根据map.txt文件提取propagation speed，transmission speed，并开始构建无向图。ServerA接收到AWS发送过来的map id 和 source node数据后，使用Dijkstra算法，查找map id 对应map中从source node到其他各节点的最短路径。计算完成后，将propagation speed，transmission speed，最短路径结果返回给AWS。
+4. serverB.cpp：ServerB代码。该程序首先建立UDP socket，侦听22233端口，以便接收AWS发送过来的数据。ServerB接收到从AWS发送过来的propagation speed，transmission speed和最短路径数据，计算各路径对应的transmission delay，propagation delay，end to end delay。计算完成后，将transmission delay，propagation delay and，to end delay返回给AWS。
 
-e. Format of exchanged information
+### 信息交换格式：
 
 client -> aws:{map id,source node,file size}
 
@@ -51,108 +60,12 @@ aws -> serverB:{propagation speed,transmission speed,file size,[[destination,min
 
 serverB -> aws:[[destination,transmission delay,propagation delay,end to end delay]]
 
-p.s.: ->  Data exchange direction,
-      {}  Which values ​​the exchange data contains
-     [[]] Indicates that the data is a two-dimensional array, and the content in parentheses indicates
-          the data meaning of the corresponding position of the array.
-client:
-    The client is up and running.
-    The client has sent query to AWS using TCP over port <35278>: start vertex <6>;map <A>; file size <263646634>.
-    The client has received results from AWS:
-    --------------------------------------------------
-    Destination    Min Length    Tt      Tp      Delay
-    7              6             3.74    5.08    8.83
-    8              4             3.74    3.39    7.13
-    9              12            3.74    10.17   13.91
-    10             14            3.74    11.86   15.61
-    11             17            3.74    14.41   18.15
-    12             15            3.74    12.71   16.45
-    13             21            3.74    17.80   21.54
-    --------------------------------------------------
+### 编译运行：
 
-aws:
-    The AWS is up and running.
-    The AWS has received map ID <A>, start vertex <6> and file size <263646634> from the client using TCP over port <35278>
-    The AWS has sent map ID and starting vertex to server A using UDP over port <23657>
-    The AWS has received shortest path from server A:
-    -----------------------------
-    Destination        Min Length
-    -----------------------------
-    7                  6
-    8                  4
-    9                  12
-    10                 14
-    11                 17
-    12                 15
-    13                 21
-    The AWS has sent path length, propagation speed and transmission speed to server B using UDP over port <23657>
-    The AWS has received delays from server B:
-    --------------------------------------------
-    Destination        Tt        Tp        Delay
-    --------------------------------------------
-    7                  3.74      5.08      8.83
-    8                  3.74      3.39      7.13
-    9                  3.74      10.17     13.91
-    10                 3.74      11.86     15.61
-    11                 3.74      14.41     18.15
-    12                 3.74      12.71     16.45
-    13                 3.74      17.80     21.54
-    --------------------------------------------
-    The AWS has sent calculated delay to client using TCP over port <24657>.
+| 功能        | 命令                                                |
+| ----------- | --------------------------------------------------- |
+| 编译源文件  | make all                                            |
+| 运行ServerA | make serverA                                        |
+| 运行ServerB | make serverB                                        |
+| 客户端查询  | ./client <Map ID> <Source Vertex Index> <File Size> |
 
-serverA:
-    The Server A is up and running using UDP on port <21657>.
-    The Server A has constructed a list of <2> maps:
-    -------------------------------------------
-    Map ID  Num Vertices  Num Edges
-    -------------------------------------------
-    A       8             15
-    B       8             15
-    -------------------------------------------
-    The Server A has received input for finding shortest paths: starting vertex <6> of map <A>.
-    The Server A has identified the following shortest paths:
-    -----------------------------
-    Destination  Min Length
-    -----------------------------
-    7            6
-    8            4
-    9            12
-    10           14
-    11           17
-    12           15
-    13           21
-    -----------------------------
-    The Server A has sent shortest paths to AWS.
-
-serverB:
-    The Server B is up and running using UDP on port <22657>.
-    The Server B has received data for calculation:
-    * Propagation speed: <1.18> km/s;
-    * Transmission speed <8808038.40> Bytes/s;
-    * Path length for destination <7>: <6>;
-    * Path length for destination <8>: <4>;
-    * Path length for destination <9>: <12>;
-    * Path length for destination <10>: <14>;
-    * Path length for destination <11>: <17>;
-    * Path length for destination <12>: <15>;
-    * Path length for destination <13>: <21>;
-    The Server B has finished the calculation of the delays:
-    ------------------------
-    Destination        Delay
-    ------------------------
-    7                  8.83
-    8                  7.13
-    9                  13.91
-    10                 15.61
-    11                 18.15
-    12                 16.45
-    13                 21.54
-    ------------------------
-    The Server B has finished sending the output to AWS
-
-
-f.Any idiosyncrasy of your project. It should say under what conditions the project fails, if any.
-    I didn't meet with some problems when I was running my program in Ubuntu.
-
-g. Reused code
-    The code about Dijkstra algorithm is based on the tutorial from Beej's Guide.
