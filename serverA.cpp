@@ -155,7 +155,7 @@ int main() {
         }
         for (auto item : chooseMap.graph) {
             graphMatrix[item[0]][item[1]] = item[2];
-            graphMatrix[item[1]][item[2]] = item[2];
+            graphMatrix[item[1]][item[0]] = item[2];
             graphMatrix[item[0]][item[0]] = 0;
             graphMatrix[item[1]][item[1]] = 0;
         }
