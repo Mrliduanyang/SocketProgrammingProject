@@ -70,7 +70,7 @@ int main() {
 
     // use map to store each graph, the key is mapID, and the value is a structure, including propSpeed, transSpeed and graph
     map<string, MapDetail> cityMap;
-    ifstream readFile("/home/mrliduanyang/文档/Github/C++/EE450/map.txt");
+    ifstream readFile("./map.txt");
     string line;
     long lineFlag = 0;
     string mapID;
